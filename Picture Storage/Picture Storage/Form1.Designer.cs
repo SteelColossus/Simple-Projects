@@ -278,7 +278,6 @@
         private System.Windows.Forms.OpenFileDialog openFromTextFileDialog;
         private System.Windows.Forms.ToolTip toolTip;
         private System.Windows.Forms.ComboBox textModeComboBox;
-
     }
 }
 

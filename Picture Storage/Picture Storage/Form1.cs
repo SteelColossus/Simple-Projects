@@ -4,6 +4,9 @@ using System.Linq;
 using System.Windows.Forms;
 
 using System.Drawing.Imaging;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Picture_Storage
 {
@@ -25,6 +28,20 @@ namespace Picture_Storage
         private string imageEncodingMode;
 
         private string[] imageNumberedResult;
+
+        private static SemaphoreSlim bitmapSemaphore = new SemaphoreSlim(1, 1);
+
+        private struct BitmapProgress
+        {
+            public int imageLine;
+            public Bitmap currentBitmap;
+
+            public BitmapProgress(int imageLine, Bitmap currentBitmap)
+            {
+                this.imageLine = imageLine;
+                this.currentBitmap = currentBitmap;
+            }
+        }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
@@ -76,7 +93,7 @@ namespace Picture_Storage
             }
         }
 
-        private void imageToTextButton_Click(object sender, EventArgs e)
+        private async void ConvertImageToText()
         {
             if (inputBitmap != null)
             {
@@ -86,49 +103,76 @@ namespace Picture_Storage
                 ChangeEnability(false);
 
                 imageEncodingMode = textModeComboBox.SelectedItem.ToString();
+                
+                progressBar.Value = 0;
+                progressBar.Maximum = inputBitmap.Height;
 
-                Func<Bitmap, string[]> conversionFunction = null;
+                Progress<int> progress = new Progress<int>();
+
+                progress.ProgressChanged += (sender, i) =>
+                {
+                    bitmapSemaphore.Wait();
+
+                    try
+                    {
+                        DrawLineHorizontal(gInput, inputBitmap, lineHighlightColor, i);
+                        pictureBox.Image = inputSurface;
+                    }
+                    finally
+                    {
+                        bitmapSemaphore.Release();
+                    }
+                    
+                    progressBar.PerformStep();
+                    
+                    float percent = (float)progressBar.Value / progressBar.Maximum;
+                    percentLabel.Text = percent.ToString("p1");
+                };
 
                 switch (imageEncodingMode)
                 {
                     case "Binary":
-                        conversionFunction = ConvertToNumberedBinary;
+                        imageNumberedResult = await ConvertToNumberedBinary(inputBitmap, progress);
                         break;
                     case "Brightness":
-                        conversionFunction = ConvertToNumberedBrightness;
+                        imageNumberedResult = await ConvertToNumberedBrightness(inputBitmap, progress);
                         break;
                     case "RGB":
-                        conversionFunction = ConvertToNumberedRgb;
+                        imageNumberedResult = await ConvertToNumberedRgb(inputBitmap, progress);
                         break;
                     case "ARGB":
-                        conversionFunction = ConvertToNumberedArgb;
+                        imageNumberedResult = await ConvertToNumberedArgb(inputBitmap, progress);
                         break;
                     case "Hexadecimal":
-                        conversionFunction = ConvertToNumberedHexadecimal;
+                        imageNumberedResult = await ConvertToNumberedHexadecimal(inputBitmap, progress);
                         break;
                 }
 
-                if (conversionFunction != null)
-                {
-                    imageNumberedResult = conversionFunction(inputBitmap);
-                }
+                MessageBox.Show(@"The picture has been fully scanned.", @"Scan Complete", MessageBoxButtons.OK,
+                                MessageBoxIcon.Information);
 
-                foreach (string line in imageNumberedResult)
-                {
-                    outputListBox.Items.Add(line);
-                }
-
-                MessageBox.Show(@"The picture has been fully scanned.", @"Scan Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                outputListBox.Items.AddRange(imageNumberedResult.Cast<object>().ToArray());
 
                 ChangeEnability(true);
             }
             else
             {
-                MessageBox.Show(@"No picture has been loaded yet.", @"Conversion Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                MessageBox.Show(@"No picture has been loaded yet.", @"Conversion Error", MessageBoxButtons.OK,
+                                MessageBoxIcon.Exclamation);
             }
         }
 
+        private void imageToTextButton_Click(object sender, EventArgs e)
+        {
+            ConvertImageToText();
+        }
+
         private void textToImageButton_Click(object sender, EventArgs e)
+        {
+            ConvertTextToImage();
+        }
+
+        private async void ConvertTextToImage()
         {
             if (outputListBox.Items.Count > 0)
             {
@@ -138,41 +182,69 @@ namespace Picture_Storage
 
                 Bitmap bmp = new Bitmap(1, 1);
 
-                Func<Bitmap> conversionFunction = null;
+                progressBar.Value = 0;
+                progressBar.Maximum = inputBitmap.Height;
+
+                Progress<BitmapProgress> progress = new Progress<BitmapProgress>();
+
+                progress.ProgressChanged += (sender, bp) =>
+                {
+                    bitmapSemaphore.Wait();
+
+                    try
+                    {
+                        ManualResetEvent mre = new ManualResetEvent(false);
+
+                        outputPictureBox.Paint += (o, args) =>
+                        {
+                            mre.Set();
+                        };
+                        
+                        outputPictureBox.Image = bp.currentBitmap;
+
+                        mre.WaitOne();
+                    }
+                    finally
+                    {
+                        bitmapSemaphore.Release();
+                    }
+                    
+                    progressBar.PerformStep();
+                    
+                    float percent = (float)progressBar.Value / progressBar.Maximum;
+                    percentLabel.Text = percent.ToString("p1");
+                };
 
                 switch (imageEncodingMode)
                 {
                     case "Binary":
-                        conversionFunction = ConvertNumberedBinaryToBitmap;
+                        bmp = await ConvertNumberedBinaryToBitmap(imageNumberedResult, progress);
                         break;
                     case "Brightness":
-                        conversionFunction = ConvertNumberedBrightnessToBitmap;
+                        bmp = await ConvertNumberedBrightnessToBitmap(imageNumberedResult, progress);
                         break;
                     case "RGB":
-                        conversionFunction = ConvertNumberedRgbToBitmap;
+                        bmp = await ConvertNumberedRgbToBitmap(imageNumberedResult, progress);
                         break;
                     case "ARGB":
-                        conversionFunction = ConvertNumberedArgbToBitmap;
+                        bmp = await ConvertNumberedArgbToBitmap(imageNumberedResult, progress);
                         break;
                     case "Hexadecimal":
-                        conversionFunction = ConvertNumberedHexadecimalToBitmap;
+                        bmp = await ConvertNumberedHexadecimalToBitmap(imageNumberedResult, progress);
                         break;
-                }
-
-                if (conversionFunction != null)
-                {
-                    bmp = conversionFunction();
                 }
 
                 outputPictureBox.Image = bmp;
 
-                MessageBox.Show(@"The picture has been fully recreated.", @"Recreation Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(@"The picture has been fully recreated.", @"Recreation Complete", MessageBoxButtons.OK,
+                                MessageBoxIcon.Information);
 
                 ChangeEnability(true);
             }
             else
             {
-                MessageBox.Show(@"No images have been scanned yet.", @"Image Recreation Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                MessageBox.Show(@"No images have been scanned yet.", @"Image Recreation Error", MessageBoxButtons.OK,
+                                MessageBoxIcon.Exclamation);
             }
         }
 
@@ -237,7 +309,7 @@ namespace Picture_Storage
                     }
                 }
 
-                outputListBox.Items.AddRange(System.IO.File.ReadAllLines(openFromTextFileDialog.FileName).Cast<object>().ToArray());
+                outputListBox.Items.AddRange(File.ReadAllLines(openFromTextFileDialog.FileName).Cast<object>().ToArray());
             }
         }
 
@@ -249,7 +321,7 @@ namespace Picture_Storage
 
                 if (saveResult == DialogResult.OK)
                 {
-                    System.IO.File.WriteAllLines(saveToTextFileDialog.FileName, outputListBox.Items.Cast<string>().ToArray());
+                    File.WriteAllLines(saveToTextFileDialog.FileName, outputListBox.Items.Cast<string>().ToArray());
                 }
             }
             else
@@ -259,36 +331,44 @@ namespace Picture_Storage
         }
 
         #region Converting images to text
-        private string[] GetTextOfBitmap(Bitmap bmp, Func<Color, Color, bool> areSame, Func<Color, int, string> getColorString)
+        private string[] GetTextOfBitmap(Bitmap bmp, Func<Color, Color, bool> areSame, Func<Color, int, string> getColorString, IProgress<int> progress = null)
         {
             Color currentColor = Color.Empty;
             Color previousColor = Color.Empty;
             string[] stringArray = new string[bmp.Height];
 
-            // Fancy progress bar stuff
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
+            // Stops accessing of the bitmap during another thread
+            int bitmapHeight = bmp.Height;
+            int bitmapWidth = bmp.Width;
 
-            for (int y = 0; y < bmp.Height; y++)
+            for (int y = 0; y < bitmapHeight; y++)
             {
                 int numContinousColors = 0;
-
-                DrawLineHorizontal(gInput, bmp, lineHighlightColor, y);
-
-                for (int x = 0; x < bmp.Width; x++)
+                
+                for (int x = 0; x < bitmapWidth; x++)
                 {
-                    currentColor = bmp.GetPixel(x, y);
+                    bitmapSemaphore.Wait();
+
+                    try
+                    {
+                        currentColor = bmp.GetPixel(x, y);
+                    }
+                    finally
+                    {
+                        bitmapSemaphore.Release();
+                    }
+
 
                     if (x == 0)
                     {
                         previousColor = currentColor;
                     }
 
-                    if (!areSame(currentColor, previousColor) || x == bmp.Width - 1)
+                    if (!areSame(currentColor, previousColor) || x == bitmapWidth - 1)
                     {
                         stringArray[y] += getColorString(previousColor, numContinousColors);
 
-                        if (x < bmp.Width - 1)
+                        if (x < bitmapWidth - 1)
                         {
                             stringArray[y] += "; ";
                             previousColor = currentColor;
@@ -301,26 +381,22 @@ namespace Picture_Storage
                     }
                 }
 
-                pictureBox.Image = inputSurface;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)progressBar.Value / progressBar.Maximum;
-                percentLabel.Text = percent.ToString("p1");
-
-                Application.DoEvents();
+                progress?.Report(y);
             }
 
             return stringArray;
         }
 
-        private string[] ConvertToNumberedBinary(Bitmap bmp)
+        private async Task<string[]> ConvertToNumberedBinary(Bitmap bmp, IProgress<int> progress)
         {
-            return GetTextOfBitmap(bmp,
-                                   (c1, c2) => (c1.GetBrightness() <= 0.5 && c2.GetBrightness() <= 0.5) ||
-                                               c1.GetBrightness() > 0.5 && c2.GetBrightness() > 0.5, GetBinaryColorString);
+            string[] bitmapText =
+                await Task.Run(() =>
+                                   GetTextOfBitmap(bmp,
+                                                   (c1, c2) => (c1.GetBrightness() <= 0.5 && c2.GetBrightness() <= 0.5) ||
+                                                               c1.GetBrightness() > 0.5 && c2.GetBrightness() > 0.5,
+                                                   GetBinaryColorString, progress));
+
+            return bitmapText;
         }
 
         private static string GetBinaryColorString(Color col, int numContinousColors)
@@ -335,9 +411,15 @@ namespace Picture_Storage
             }
         }
 
-        private string[] ConvertToNumberedBrightness(Bitmap bmp)
+        private async Task<string[]> ConvertToNumberedBrightness(Bitmap bmp, IProgress<int> progress)
         {
-            return GetTextOfBitmap(bmp, (c1, c2) => (int)Math.Round(c1.GetBrightness() * 255) == (int)Math.Round(c2.GetBrightness() * 255), GetBrightnessColorString);
+            string[] bitmapText = await Task.Run(() =>
+                                                     GetTextOfBitmap(bmp,
+                                                                     (c1, c2) => (int)Math.Round(c1.GetBrightness() * 255) ==
+                                                                                 (int)Math.Round(c2.GetBrightness() * 255),
+                                                                     GetBrightnessColorString, progress));
+
+            return bitmapText;
         }
 
         private static string GetBrightnessColorString(Color col, int numContinousColors)
@@ -352,9 +434,14 @@ namespace Picture_Storage
             }
         }
 
-        private string[] ConvertToNumberedRgb(Bitmap bmp)
+        private async Task<string[]> ConvertToNumberedRgb(Bitmap bmp, IProgress<int> progress)
         {
-            return GetTextOfBitmap(bmp, (c1, c2) => c1.R == c2.R && c1.G == c2.G && c1.B == c2.B, GetRgbColorString);
+            string[] bitmapText = await Task.Run(() =>
+                                                     GetTextOfBitmap(bmp,
+                                                                     (c1, c2) => c1.R == c2.R && c1.G == c2.G && c1.B == c2.B,
+                                                                     GetRgbColorString, progress));
+
+            return bitmapText;
         }
 
         private string GetRgbColorString(Color col, int numContinousColors)
@@ -369,9 +456,11 @@ namespace Picture_Storage
             }
         }
 
-        private string[] ConvertToNumberedArgb(Bitmap bmp)
+        private async Task<string[]> ConvertToNumberedArgb(Bitmap bmp, IProgress<int> progress)
         {
-            return GetTextOfBitmap(bmp, (c1, c2) => c1 == c2, GetArgbColorString);
+            string[] bitmapText = await Task.Run(() => GetTextOfBitmap(bmp, (c1, c2) => c1 == c2, GetArgbColorString, progress));
+
+            return bitmapText;
         }
 
         private string GetArgbColorString(Color col, int numContinousColors)
@@ -386,9 +475,12 @@ namespace Picture_Storage
             }
         }
 
-        private string[] ConvertToNumberedHexadecimal(Bitmap bmp)
+        private async Task<string[]> ConvertToNumberedHexadecimal(Bitmap bmp, IProgress<int> progress)
         {
-            return GetTextOfBitmap(bmp, (c1, c2) => c1 == c2, GetHexadecimalColorString);
+            string[] bitmapText = await Task.Run(() => GetTextOfBitmap(bmp, (c1, c2) => c1 == c2, GetHexadecimalColorString,
+                                                                       progress));
+
+            return bitmapText;
         }
 
         private string GetHexadecimalColorString(Color col, int numContinousColors)
@@ -405,12 +497,9 @@ namespace Picture_Storage
         #endregion
 
         #region Converting text to images
-        private Bitmap GetBitmapFromText(string[] text, Func<string, Color> getColorFromString)
+        private Bitmap GetBitmapFromText(string[] text, Func<string, Color> getColorFromString, IProgress<BitmapProgress> progress = null)
         {
             Bitmap bmp = new Bitmap(pictureBox.Image.Width, pictureBox.Image.Height);
-
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
 
             int y = 0;
 
@@ -428,23 +517,24 @@ namespace Picture_Storage
 
                     for (int times = 0; times < numOccurrences; times++)
                     {
-                        bmp.SetPixel(x, y, color);
+                        bitmapSemaphore.Wait();
+
+                        try
+                        {
+                            bmp.SetPixel(x, y, color);
+                        }
+                        finally
+                        {
+                            bitmapSemaphore.Release();
+                        }
+
                         x++;
                     }
                 }
-
-                outputPictureBox.Image = bmp;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)progressBar.Value / progressBar.Maximum;
-                percentLabel.Text = percent.ToString("p1");
+                
+                progress?.Report(new BitmapProgress(y, bmp));
 
                 y++;
-
-                Application.DoEvents();
             }
 
             return bmp;
@@ -462,9 +552,11 @@ namespace Picture_Storage
             }
         }
 
-        private Bitmap ConvertNumberedBinaryToBitmap()
+        private async Task<Bitmap> ConvertNumberedBinaryToBitmap(string[] imageText, IProgress<BitmapProgress> progress)
         {
-            return GetBitmapFromText(imageNumberedResult, GetBinaryColorFromString);
+            Bitmap bitmap = await Task.Run(() => GetBitmapFromText(imageText, GetBinaryColorFromString, progress));
+
+            return bitmap;
         }
 
         private Color GetBrightnessColorFromString(string colorString)
@@ -474,9 +566,11 @@ namespace Picture_Storage
             return Color.FromArgb(brightnessValue, brightnessValue, brightnessValue);
         }
 
-        private Bitmap ConvertNumberedBrightnessToBitmap()
+        private async Task<Bitmap> ConvertNumberedBrightnessToBitmap(string[] imageText, IProgress<BitmapProgress> progress)
         {
-            return GetBitmapFromText(imageNumberedResult, GetBrightnessColorFromString);
+            Bitmap bitmap = await Task.Run(() => GetBitmapFromText(imageText, GetBrightnessColorFromString, progress));
+
+            return bitmap;
         }
 
         private Color GetRgbColorFromString(string colorString)
@@ -487,9 +581,11 @@ namespace Picture_Storage
             return Color.FromArgb(colorParts[0], colorParts[1], colorParts[2]);
         }
 
-        private Bitmap ConvertNumberedRgbToBitmap()
+        private async Task<Bitmap> ConvertNumberedRgbToBitmap(string[] imageText, IProgress<BitmapProgress> progress)
         {
-            return GetBitmapFromText(imageNumberedResult, GetRgbColorFromString);
+            Bitmap bitmap = await Task.Run(() => GetBitmapFromText(imageText, GetRgbColorFromString, progress));
+
+            return bitmap;
         }
 
         private Color GetArgbColorFromString(string colorString)
@@ -499,9 +595,11 @@ namespace Picture_Storage
             return Color.FromArgb(colorParts[0], colorParts[1], colorParts[2], colorParts[3]);
         }
 
-        private Bitmap ConvertNumberedArgbToBitmap()
+        private async Task<Bitmap> ConvertNumberedArgbToBitmap(string[] imageText, IProgress<BitmapProgress> progress)
         {
-            return GetBitmapFromText(imageNumberedResult, GetArgbColorFromString);
+            Bitmap bitmap = await Task.Run(() => GetBitmapFromText(imageText, GetArgbColorFromString, progress));
+
+            return bitmap;
         }
 
         private Color GetHexadecimalColorFromString(string colorString)
@@ -509,9 +607,11 @@ namespace Picture_Storage
             return ColorTranslator.FromHtml(colorString);
         }
 
-        private Bitmap ConvertNumberedHexadecimalToBitmap()
+        private async Task<Bitmap> ConvertNumberedHexadecimalToBitmap(string[] imageText, IProgress<BitmapProgress> progress)
         {
-            return GetBitmapFromText(imageNumberedResult, GetHexadecimalColorFromString);
+            Bitmap bitmap = await Task.Run(() => GetBitmapFromText(imageText, GetHexadecimalColorFromString, progress));
+
+            return bitmap;
         }
         #endregion
 

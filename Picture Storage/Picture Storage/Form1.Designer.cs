@@ -155,7 +155,6 @@
             // 
             // importFromTextFileButton
             // 
-            this.importFromTextFileButton.Enabled = false;
             this.importFromTextFileButton.Image = global::Picture_Storage.Properties.Resources.arrow_up;
             this.importFromTextFileButton.Location = new System.Drawing.Point(372, 310);
             this.importFromTextFileButton.Name = "importFromTextFileButton";

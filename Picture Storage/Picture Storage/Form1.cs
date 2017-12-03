@@ -16,7 +16,6 @@ namespace Picture_Storage
 
         // Fancy line stuff
         private Color lineHighlightColor;
-        private Pen lineHighlightPen;
 
         private Bitmap inputBitmap;
 
@@ -30,7 +29,6 @@ namespace Picture_Storage
         private void MainForm_Load(object sender, EventArgs e)
         {
             lineHighlightColor = Color.FromArgb(196, Color.LightGreen);
-            lineHighlightPen = new Pen(lineHighlightColor);
 
             textModeComboBox.SelectedItem = "RGB";
 
@@ -261,7 +259,7 @@ namespace Picture_Storage
         }
 
         #region Converting images to text
-        private string[] ConvertToNumberedBinary(Bitmap bmp)
+        private string[] GetTextOfBitmap(Bitmap bmp, Func<Color, Color, bool> areSame, Func<Color, int, string> getColorString)
         {
             Color currentColor = Color.Empty;
             Color previousColor = Color.Empty;
@@ -275,22 +273,27 @@ namespace Picture_Storage
             {
                 int numContinousColors = 0;
 
+                DrawLineHorizontal(gInput, bmp, lineHighlightColor, y);
+
                 for (int x = 0; x < bmp.Width; x++)
                 {
                     currentColor = bmp.GetPixel(x, y);
 
                     if (x == 0)
                     {
-                        previousColor = Color.White;
+                        previousColor = currentColor;
                     }
 
-                    if ((currentColor.GetBrightness() > 0.5 && previousColor.GetBrightness() <= 0.5) || currentColor.GetBrightness() <= 0.5 && previousColor.GetBrightness() > 0.5)
+                    if (!areSame(currentColor, previousColor) || x == bmp.Width - 1)
                     {
-                        stringArray[y] += numContinousColors + ", ";
-                        
-                        previousColor = currentColor;
+                        stringArray[y] += getColorString(previousColor, numContinousColors);
 
-                        numContinousColors = 1;
+                        if (x < bmp.Width - 1)
+                        {
+                            stringArray[y] += "; ";
+                            previousColor = currentColor;
+                            numContinousColors = 1;
+                        }
                     }
                     else
                     {
@@ -298,17 +301,13 @@ namespace Picture_Storage
                     }
                 }
 
-                stringArray[y] += numContinousColors.ToString();
-
-                DrawLineHorizontal(gInput, bmp, lineHighlightColor, y);
-
                 pictureBox.Image = inputSurface;
 
                 // Fancy progress bar stuff
                 progressBar.PerformStep();
 
                 // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
+                float percent = (float)progressBar.Value / progressBar.Maximum;
                 percentLabel.Text = percent.ToString("p1");
 
                 Application.DoEvents();
@@ -317,64 +316,28 @@ namespace Picture_Storage
             return stringArray;
         }
 
+        private string[] ConvertToNumberedBinary(Bitmap bmp)
+        {
+            return GetTextOfBitmap(bmp,
+                                   (c1, c2) => (c1.GetBrightness() <= 0.5 && c2.GetBrightness() <= 0.5) ||
+                                               c1.GetBrightness() > 0.5 && c2.GetBrightness() > 0.5, GetBinaryColorString);
+        }
+
+        private static string GetBinaryColorString(Color col, int numContinousColors)
+        {
+            if (numContinousColors > 0)
+            {
+                return ((col.GetBrightness() <= 0.5) ? "1" : "0") + ", " + numContinousColors;
+            }
+            else
+            {
+                return "";
+            }
+        }
+
         private string[] ConvertToNumberedBrightness(Bitmap bmp)
         {
-            Color currentColor = Color.Empty;
-            Color previousColor = Color.Empty;
-            string[] stringArray = new string[bmp.Height];
-
-            // Fancy progress bar stuff
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
-            
-            for (int y = 0; y < bmp.Height; y++)
-            {
-                int numContinousColors = 0;
-
-                for (int x = 0; x < bmp.Width; x++)
-                {
-                    currentColor = bmp.GetPixel(x, y);
-
-                    if (x == 0)
-                    {
-                        previousColor = currentColor;
-                    }
-
-                    if (currentColor != previousColor || x == 0)
-                    {
-                        stringArray[y] += GetBrightnessColorString(previousColor, numContinousColors);
-
-                        if (x != 0)
-                        {
-                            stringArray[y] += ", ";
-                            previousColor = currentColor;
-                        }
-
-                        numContinousColors = 1;
-                    }
-                    else
-                    {
-                        numContinousColors++;
-                    }
-                }
-
-                stringArray[y] += GetBrightnessColorString(previousColor, numContinousColors);
-
-                DrawLineHorizontal(gInput, bmp, lineHighlightColor, y);
-
-                pictureBox.Image = inputSurface;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
-                percentLabel.Text = percent.ToString("p1");
-
-                Application.DoEvents();
-            }
-
-            return stringArray;
+            return GetTextOfBitmap(bmp, (c1, c2) => (int)Math.Round(c1.GetBrightness() * 255) == (int)Math.Round(c2.GetBrightness() * 255), GetBrightnessColorString);
         }
 
         private static string GetBrightnessColorString(Color col, int numContinousColors)
@@ -391,62 +354,7 @@ namespace Picture_Storage
 
         private string[] ConvertToNumberedRgb(Bitmap bmp)
         {
-            Color currentColor = Color.Empty;
-            Color previousColor = Color.Empty;
-            string[] stringArray = new string[bmp.Height];
-
-            // Fancy progress bar stuff
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
-            
-            for (int y = 0; y < bmp.Height; y++)
-            {
-                int numContinousColors = 0;
-
-                for (int x = 0; x < bmp.Width; x++)
-                {
-                    currentColor = bmp.GetPixel(x, y);
-
-                    if (x == 0)
-                    {
-                        previousColor = currentColor;
-                    }
-
-                    if (currentColor != previousColor || x == 0)
-                    {
-                        stringArray[y] += GetRgbColorString(previousColor, numContinousColors);
-
-                        if (x != 0)
-                        {
-                            stringArray[y] += ", ";
-                            previousColor = currentColor;
-                        }
-
-                        numContinousColors = 1;
-                    }
-                    else
-                    {
-                        numContinousColors++;
-                    }
-                }
-
-                stringArray[y] += GetRgbColorString(previousColor, numContinousColors);
-
-                DrawLineHorizontal(gInput, bmp, lineHighlightColor, y);
-
-                pictureBox.Image = inputSurface;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
-                percentLabel.Text = percent.ToString("p1");
-
-                Application.DoEvents();
-            }
-
-            return stringArray;
+            return GetTextOfBitmap(bmp, (c1, c2) => c1.R == c2.R && c1.G == c2.G && c1.B == c2.B, GetRgbColorString);
         }
 
         private string GetRgbColorString(Color col, int numContinousColors)
@@ -463,62 +371,7 @@ namespace Picture_Storage
 
         private string[] ConvertToNumberedArgb(Bitmap bmp)
         {
-            Color currentColor = Color.Empty;
-            Color previousColor = Color.Empty;
-            string[] stringArray = new string[bmp.Height];
-
-            // Fancy progress bar stuff
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
-
-            for (int y = 0; y < bmp.Height; y++)
-            {
-                int numContinousColors = 0;
-
-                for (int x = 0; x < bmp.Width; x++)
-                {
-                    currentColor = bmp.GetPixel(x, y);
-
-                    if (x == 0)
-                    {
-                        previousColor = currentColor;
-                    }
-
-                    if (currentColor != previousColor || x == 0)
-                    {
-                        stringArray[y] += GetArgbColorString(previousColor, numContinousColors);
-
-                        if (x != 0)
-                        {
-                            stringArray[y] += ", ";
-                            previousColor = currentColor;
-                        }
-
-                        numContinousColors = 1;
-                    }
-                    else
-                    {
-                        numContinousColors++;
-                    }
-                }
-
-                stringArray[y] += GetArgbColorString(previousColor, numContinousColors);
-
-                DrawLineHorizontal(gInput, bmp, lineHighlightColor, y);
-
-                pictureBox.Image = inputSurface;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
-                percentLabel.Text = percent.ToString("p1");
-
-                Application.DoEvents();
-            }
-
-            return stringArray;
+            return GetTextOfBitmap(bmp, (c1, c2) => c1 == c2, GetArgbColorString);
         }
 
         private string GetArgbColorString(Color col, int numContinousColors)
@@ -535,62 +388,7 @@ namespace Picture_Storage
 
         private string[] ConvertToNumberedHexadecimal(Bitmap bmp)
         {
-            Color currentColor = Color.Empty;
-            Color previousColor = Color.Empty;
-            string[] stringArray = new string[bmp.Height];
-
-            // Fancy progress bar stuff
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
-
-            for (int y = 0; y < bmp.Height; y++)
-            {
-                int numContinousColors = 0;
-
-                for (int x = 0; x < bmp.Width; x++)
-                {
-                    currentColor = bmp.GetPixel(x, y);
-
-                    if (x == 0)
-                    {
-                        previousColor = currentColor;
-                    }
-
-                    if (currentColor != previousColor || x == 0)
-                    {
-                        stringArray[y] += GetHexadecimalColorString(previousColor, numContinousColors);
-
-                        if (x != 0)
-                        {
-                            stringArray[y] += ", ";
-                            previousColor = currentColor;
-                        }
-
-                        numContinousColors = 1;
-                    }
-                    else
-                    {
-                        numContinousColors++;
-                    }
-                }
-
-                stringArray[y] += GetHexadecimalColorString(previousColor, numContinousColors);
-
-                DrawLineHorizontal(gInput, bmp, lineHighlightColor, y);
-
-                pictureBox.Image = inputSurface;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
-                percentLabel.Text = percent.ToString("p1");
-
-                Application.DoEvents();
-            }
-
-            return stringArray;
+            return GetTextOfBitmap(bmp, (c1, c2) => c1 == c2, GetHexadecimalColorString);
         }
 
         private string GetHexadecimalColorString(Color col, int numContinousColors)
@@ -607,7 +405,7 @@ namespace Picture_Storage
         #endregion
 
         #region Converting text to images
-        private Bitmap ConvertNumberedBinaryToBitmap()
+        private Bitmap GetBitmapFromText(string[] text, Func<string, Color> getColorFromString)
         {
             Bitmap bmp = new Bitmap(pictureBox.Image.Width, pictureBox.Image.Height);
 
@@ -616,28 +414,21 @@ namespace Picture_Storage
 
             int y = 0;
 
-            foreach (string line in imageNumberedResult)
+            foreach (string line in text)
             {
                 int x = 0;
 
-                string trim = line.Trim();
-
-                Color col = Color.Empty;
-
-                foreach (string pixelValue in trim.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                foreach (string pixelString in line.Split(new[] {"; "}, StringSplitOptions.None))
                 {
-                    if (col == Color.White)
-                    {
-                        col = Color.Black;
-                    }
-                    else
-                    {
-                        col = Color.White;
-                    }
+                    int lastCommaIndex = pixelString.LastIndexOf(", ", StringComparison.Ordinal);
 
-                    for (int times = 0; times < Int32.Parse(pixelValue); times++)
+                    int numOccurrences = Int32.Parse(pixelString.Substring(lastCommaIndex + ", ".Length));
+
+                    Color color = getColorFromString(pixelString.Substring(0, lastCommaIndex));
+
+                    for (int times = 0; times < numOccurrences; times++)
                     {
-                        bmp.SetPixel(x, y, col);
+                        bmp.SetPixel(x, y, color);
                         x++;
                     }
                 }
@@ -648,7 +439,7 @@ namespace Picture_Storage
                 progressBar.PerformStep();
 
                 // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
+                float percent = (float)progressBar.Value / progressBar.Maximum;
                 percentLabel.Text = percent.ToString("p1");
 
                 y++;
@@ -657,178 +448,70 @@ namespace Picture_Storage
             }
 
             return bmp;
+        }
+
+        private Color GetBinaryColorFromString(string colorString)
+        {
+            if (colorString == "0")
+            {
+                return Color.White;
+            }
+            else
+            {
+                return Color.Black;
+            }
+        }
+
+        private Bitmap ConvertNumberedBinaryToBitmap()
+        {
+            return GetBitmapFromText(imageNumberedResult, GetBinaryColorFromString);
+        }
+
+        private Color GetBrightnessColorFromString(string colorString)
+        {
+            int brightnessValue = Int32.Parse(colorString);
+
+            return Color.FromArgb(brightnessValue, brightnessValue, brightnessValue);
         }
 
         private Bitmap ConvertNumberedBrightnessToBitmap()
         {
-            Bitmap bmp = new Bitmap(pictureBox.Image.Width, pictureBox.Image.Height);
+            return GetBitmapFromText(imageNumberedResult, GetBrightnessColorFromString);
+        }
 
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
-            
-            int y = 0;
+        private Color GetRgbColorFromString(string colorString)
+        {
+            int[] colorParts = colorString.Split(new[] {", ", "(", ")"}, StringSplitOptions.RemoveEmptyEntries)
+                                          .Select(Int32.Parse).ToArray();
 
-            foreach (string line in imageNumberedResult)
-            {
-                int x = 0;
-
-                string trim = line.Trim();
-
-                string[] pixelString = trim.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                for (int v = 0; v < pixelString.Length; v += 2)
-                {
-                    for (int times = 0; times < Int32.Parse(pixelString[v + 1]); times++)
-                    {
-                        bmp.SetPixel(x, y, Color.FromArgb(Int32.Parse(pixelString[v]), Int32.Parse(pixelString[v]), Int32.Parse(pixelString[v])));
-                        x++;
-                    }
-                }
-                
-                outputPictureBox.Image = bmp;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
-                percentLabel.Text = percent.ToString("p1");
-
-                y++;
-
-                Application.DoEvents();
-            }
-
-            return bmp;
+            return Color.FromArgb(colorParts[0], colorParts[1], colorParts[2]);
         }
 
         private Bitmap ConvertNumberedRgbToBitmap()
         {
-            Bitmap bmp = new Bitmap(pictureBox.Image.Width, pictureBox.Image.Height);
+            return GetBitmapFromText(imageNumberedResult, GetRgbColorFromString);
+        }
 
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
-            
-            int y = 0;
+        private Color GetArgbColorFromString(string colorString)
+        {
+            int[] colorParts = colorString.Split(new[] {", ", "(", ")"}, StringSplitOptions.RemoveEmptyEntries).Select(Int32.Parse).ToArray();
 
-            foreach (string line in imageNumberedResult)
-            {
-                int x = 0;
-
-                string trim = line.Trim();
-
-                foreach (string pixelString in trim.Split(new[] { ", (" }, StringSplitOptions.None))
-                {
-                    string[] pixelValues = pixelString.Split(new[] { ',', '(', ')', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    for (int times = 0; times < Int32.Parse(pixelValues[3]); times++)
-                    {
-                        bmp.SetPixel(x, y, Color.FromArgb(Int32.Parse(pixelValues[0]), Int32.Parse(pixelValues[1]), Int32.Parse(pixelValues[2])));
-                        x++;
-                    }
-                }
-
-                outputPictureBox.Image = bmp;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
-                percentLabel.Text = percent.ToString("p1");
-
-                y++;
-
-                Application.DoEvents();
-            }
-
-            return bmp;
+            return Color.FromArgb(colorParts[0], colorParts[1], colorParts[2], colorParts[3]);
         }
 
         private Bitmap ConvertNumberedArgbToBitmap()
         {
-            Bitmap bmp = new Bitmap(pictureBox.Image.Width, pictureBox.Image.Height);
+            return GetBitmapFromText(imageNumberedResult, GetArgbColorFromString);
+        }
 
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
-            
-            int y = 0;
-
-            foreach (string line in imageNumberedResult)
-            {
-                int x = 0;
-
-                string trim = line.Trim();
-
-                foreach (string pixelString in trim.Split(new[] { ", (" }, StringSplitOptions.None))
-                {
-                    string[] pixelValues = pixelString.Split(new[] { ',', '(', ')', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    for (int times = 0; times < Int32.Parse(pixelValues[4]); times++)
-                    {
-                        bmp.SetPixel(x, y, Color.FromArgb(Int32.Parse(pixelValues[0]), Int32.Parse(pixelValues[1]), Int32.Parse(pixelValues[2]), Int32.Parse(pixelValues[3])));
-                        x++;
-                    }
-                }
-
-                outputPictureBox.Image = bmp;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
-                percentLabel.Text = percent.ToString("p1");
-
-                y++;
-
-                Application.DoEvents();
-            }
-
-            return bmp;
+        private Color GetHexadecimalColorFromString(string colorString)
+        {
+            return ColorTranslator.FromHtml(colorString);
         }
 
         private Bitmap ConvertNumberedHexadecimalToBitmap()
         {
-            Bitmap bmp = new Bitmap(pictureBox.Image.Width, pictureBox.Image.Height);
-
-            progressBar.Value = 0;
-            progressBar.Maximum = bmp.Height;
-            
-            int y = 0;
-
-            foreach (string line in imageNumberedResult)
-            {
-                int x = 0;
-
-                string trim = line.Trim();
-
-                string[] pixelString = trim.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                for (int v = 0; v < pixelString.Length; v += 2)
-                {
-                    for (int times = 0; times < Int32.Parse(pixelString[v + 1]); times++)
-                    {
-                        bmp.SetPixel(x, y, ColorTranslator.FromHtml(pixelString[v]));
-                        x++;
-                    }
-                }
-
-                outputPictureBox.Image = bmp;
-
-                // Fancy progress bar stuff
-                progressBar.PerformStep();
-
-                // Fancy percentage stuff
-                float percent = (float)(y + 1) / bmp.Height;
-                percentLabel.Text = percent.ToString("p1");
-
-                y++;
-
-                Application.DoEvents();
-            }
-
-            return bmp;
+            return GetBitmapFromText(imageNumberedResult, GetHexadecimalColorFromString);
         }
         #endregion
 

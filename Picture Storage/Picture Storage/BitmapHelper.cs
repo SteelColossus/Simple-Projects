@@ -1,22 +1,26 @@
-﻿namespace System.Drawing
+﻿using System.Diagnostics;
+
+namespace System.Drawing
 {
     public class BitmapHelper
     {
         #region Methods
+
         public static Bitmap Load(string filename)
         {
             Bitmap bmp = null;
             try
             {
-                bmp = new Bitmap(filename); 
+                bmp = new Bitmap(filename);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-               System.Diagnostics.Trace.WriteLine("ERROR: Failed to load bitmap " + filename);
-               throw ex;
+                Trace.WriteLine("ERROR: Failed to load bitmap " + filename);
+                throw;
             }
             return bmp;
         }
+
         #endregion
     }
 }

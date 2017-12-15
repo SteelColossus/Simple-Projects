@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27004.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picture Manipulation", "PictureManipulation\Picture Manipulation.csproj", "{B1BF0F55-5702-4F23-94C6-FB3EE5B83DE2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Picture Manipulation", "Picture Manipulation\Picture Manipulation.csproj", "{B1BF0F55-5702-4F23-94C6-FB3EE5B83DE2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

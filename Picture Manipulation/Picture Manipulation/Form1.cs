@@ -37,7 +37,12 @@ namespace PictureManipulation
             SetNewImage(inputBitmap);
         }
 
-        private void invertButton_Click(object sender, EventArgs e)
+        private void EditImage(Func<Color, Color> colorFunc)
+        {
+            EditImage((x, y, bmp) => colorFunc(bmp.GetPixel(x, y)));
+        }
+
+        private void EditImage(Func<int, int, Bitmap, Color> colorFunc)
         {
             Bitmap newBitmap = new Bitmap(currentBitmap);
 
@@ -45,198 +50,133 @@ namespace PictureManipulation
             {
                 for (int x = 0; x < currentBitmap.Width; x++)
                 {
-                    Color c = currentBitmap.GetPixel(x, y);
-
-                    newBitmap.SetPixel(x, y, Color.FromArgb(255 - c.R, 255 - c.G, 255 - c.B));
+                    newBitmap.SetPixel(x, y, colorFunc(x, y, newBitmap));
                 }
             }
 
             SetNewImage(newBitmap);
+        }
+
+        private void invertButton_Click(object sender, EventArgs e)
+        {
+            EditImage(c => Color.FromArgb(255 - c.R, 255 - c.G, 255 - c.B));
         }
 
         private void redFilterButton_Click(object sender, EventArgs e)
         {
-            Bitmap newBitmap = new Bitmap(currentBitmap);
-
-            for (int y = 0; y < currentBitmap.Height; y++)
-            {
-                for (int x = 0; x < currentBitmap.Width; x++)
-                {
-                    Color c = currentBitmap.GetPixel(x, y);
-
-                    newBitmap.SetPixel(x, y, Color.FromArgb(255, c.G, c.B));
-                }
-            }
-
-            SetNewImage(newBitmap);
-
-
+            EditImage(c => Color.FromArgb(255, c.G, c.B));
         }
 
         private void greenFilterButton_Click(object sender, EventArgs e)
         {
-            Bitmap newBitmap = new Bitmap(currentBitmap);
-
-            for (int y = 0; y < currentBitmap.Height; y++)
-            {
-                for (int x = 0; x < currentBitmap.Width; x++)
-                {
-                    Color c = currentBitmap.GetPixel(x, y);
-
-                    newBitmap.SetPixel(x, y, Color.FromArgb(c.R, 255, c.B));
-                }
-            }
-
-            SetNewImage(newBitmap);
+            EditImage(c => Color.FromArgb(c.R, 255, c.B));
         }
 
         private void blueFilterButton_Click(object sender, EventArgs e)
         {
-            Bitmap newBitmap = new Bitmap(currentBitmap);
-
-            for (int y = 0; y < currentBitmap.Height; y++)
-            {
-                for (int x = 0; x < currentBitmap.Width; x++)
-                {
-                    Color c = currentBitmap.GetPixel(x, y);
-
-                    newBitmap.SetPixel(x, y, Color.FromArgb(c.R, c.G, 255));
-                }
-            }
-
-            SetNewImage(newBitmap);
+            EditImage(c => Color.FromArgb(c.R, c.G, 255));
         }
 
         private void cycleColoursButton_Click(object sender, EventArgs e)
         {
-            Bitmap newBitmap = new Bitmap(currentBitmap);
+            Random rand = new Random();
 
-            for (int y = 0; y < currentBitmap.Height; y++)
+            Color ColorCycle(Color c)
             {
-                for (int x = 0; x < currentBitmap.Width; x++)
+                int randNum = rand.Next(4);
+
+                switch (randNum)
                 {
-                    Color c = currentBitmap.GetPixel(x, y);
-
-                    Random rand = new Random();
-
-                    int randNum = rand.Next(4);
-
-                    switch (randNum)
-                    {
-                        case 0:
-                            newBitmap.SetPixel(x, y, Color.FromArgb(c.G, c.B, c.R));
-                            break;
-                        case 1:
-                            newBitmap.SetPixel(x, y, Color.FromArgb(c.B, c.R, c.G));
-                            break;
-                        case 2:
-                            newBitmap.SetPixel(x, y, Color.FromArgb(c.G, c.R, c.G));
-                            break;
-                        case 3:
-                            newBitmap.SetPixel(x, y, Color.FromArgb(c.B, c.G, c.R));
-                            break;
-                    }
+                    case 0:
+                        return Color.FromArgb(c.G, c.B, c.R);
+                    case 1:
+                        return Color.FromArgb(c.B, c.R, c.G);
+                    case 2:
+                        return Color.FromArgb(c.G, c.R, c.G);
+                    case 3:
+                        return Color.FromArgb(c.B, c.G, c.R);
+                    default:
+                        return Color.Empty;
                 }
             }
 
-            SetNewImage(newBitmap);
+            EditImage(ColorCycle);
         }
 
         private void flipButton_Click(object sender, EventArgs e)
         {
-            Bitmap newBitmap = new Bitmap(currentBitmap);
-
-            for (int y = 0; y < currentBitmap.Height; y++)
+            Color FlipColor(int x, int y, Bitmap bmp)
             {
-                for (int x = 0; x < currentBitmap.Width; x++)
-                {
-                    Color c = currentBitmap.GetPixel(currentBitmap.Width - x - 1, currentBitmap.Height - y - 1);
+                Color c = currentBitmap.GetPixel(currentBitmap.Width - x - 1, currentBitmap.Height - y - 1);
 
-                    newBitmap.SetPixel(x, y, Color.FromArgb(c.R, c.G, c.B));
-                }
+                return Color.FromArgb(c.R, c.G, c.B);
             }
 
-            SetNewImage(newBitmap);
+            EditImage(FlipColor);
         }
 
         private void interferenceButton_Click(object sender, EventArgs e)
         {
-            Bitmap newBitmap = new Bitmap(currentBitmap);
+            Random rand = new Random();
 
-            for (int y = 0; y < currentBitmap.Height; y++)
+            Color InterfereColor(Color c)
             {
-                for (int x = 0; x < currentBitmap.Width; x++)
+                int randNum = rand.Next(4);
+
+                switch (randNum)
                 {
-                    Color c = currentBitmap.GetPixel(x, y);
-
-                    Random rand = new Random();
-
-                    int randNum = rand.Next(4);
-
-                    switch (randNum)
-                    {
-                        case 0:
-                            newBitmap.SetPixel(x, y, Color.Gray);
-                            break;
-                        case 1:
-                            newBitmap.SetPixel(x, y, Color.LightGray);
-                            break;
-                        default:
-                            newBitmap.SetPixel(x, y, c);
-                            break;
-                    }
+                    case 0:
+                        return Color.Gray;
+                    case 1:
+                        return Color.LightGray;
+                    default:
+                        return c;
                 }
             }
 
-            SetNewImage(newBitmap);
+            EditImage(InterfereColor);
         }
 
         private void averageButton_Click(object sender, EventArgs e)
         {
-            Bitmap newBitmap = new Bitmap(currentBitmap);
-            int avgFactor = (int)(valueUpDown.Value * (currentBitmap.Width / 1920));
+            int avgFactor = (int)(valueUpDown.Value * ((decimal)currentBitmap.Width / 1920));
 
-            for (int y = 0; y < currentBitmap.Height; y++)
+            Color AverageColor(int x, int y, Bitmap bmp)
             {
-                for (int x = 0; x < currentBitmap.Width; x++)
+                float totR = 0;
+                float totG = 0;
+                float totB = 0;
+
+                int numPixelsAvgd = 0;
+
+                for (int ya = y - avgFactor; ya <= (y + avgFactor); ya++)
                 {
-                    float totR = 0;
-                    float totG = 0;
-                    float totB = 0;
+                    if (ya < 0 || ya >= currentBitmap.Height) continue;
 
-                    int numPixelsAvgd = 0;
-
-                    for (int ya = (y - avgFactor); ya <= (y + avgFactor); ya++)
+                    for (int xa = (x - avgFactor); xa <= (x + avgFactor); xa++)
                     {
-                        if (ya < 0 || ya >= currentBitmap.Height)
-                            continue;
-
-                        for (int xa = (x - avgFactor); xa <= (x + avgFactor); xa++)
+                        if (xa < 0 || xa >= currentBitmap.Width)
                         {
-                            if (xa < 0 || xa >= currentBitmap.Width)
-                            {
-                                continue;
-                            }
-                            else
-                            {
-                                numPixelsAvgd++;
-
-                                Color c = currentBitmap.GetPixel(xa, ya);
-
-                                totR += c.R;
-                                totG += c.G;
-                                totB += c.B;
-                            }
+                            continue;
                         }
+
+                        numPixelsAvgd++;
+
+                        Color c = currentBitmap.GetPixel(xa, ya);
+
+                        totR += c.R;
+                        totG += c.G;
+                        totB += c.B;
                     }
-
-                    Color avgColor = Color.FromArgb((int)Math.Round(totR / numPixelsAvgd), (int)Math.Round(totG / numPixelsAvgd), (int)Math.Round(totB / numPixelsAvgd));
-
-                    newBitmap.SetPixel(x, y, avgColor);
                 }
+
+                Color avgColor = Color.FromArgb((int)Math.Round(totR / numPixelsAvgd), (int)Math.Round(totG / numPixelsAvgd),
+                                                (int)Math.Round(totB / numPixelsAvgd));
+
+                return avgColor;
             }
 
-            SetNewImage(newBitmap);
+            EditImage(AverageColor);
         }
 
         private void pixelButton_Click(object sender, EventArgs e)
@@ -263,10 +203,8 @@ namespace PictureManipulation
                             {
                                 continue;
                             }
-                            else
-                            {
-                                newBitmap.SetPixel(xp, yp, mainC);
-                            }
+
+                            newBitmap.SetPixel(xp, yp, mainC);
                         }
                     }
                 }

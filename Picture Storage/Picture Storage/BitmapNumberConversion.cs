@@ -1,14 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using System.Drawing;
-
-namespace Picture_Storage
+﻿namespace Picture_Storage
 {
-    public class BitmapNumberConversion
-    {
-    }
+    public class BitmapNumberConversion { }
 }

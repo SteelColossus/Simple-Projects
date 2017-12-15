@@ -7,19 +7,19 @@ namespace Primes
 {
     public partial class Form1 : Form
     {
+        private List<int> primes;
+
         public Form1()
         {
             InitializeComponent();
         }
-
-        private List<int> primes;
 
         private void calcButton_Click(object sender, EventArgs e)
         {
             DateTime start = DateTime.Now;
 
             primeOutputBox.Items.Clear();
-            
+
             primes = new List<int>((int)(limitNumericUpDown.Value / 2) + 1);
 
             for (int num = 2; num <= limitNumericUpDown.Value; num++)
@@ -31,30 +31,31 @@ namespace Primes
                 }
             }
 
-			totalBox.Text = primes.Count.ToString();
-			percentBox.Text = (primes.Count / limitNumericUpDown.Value).ToString("P2");
+            totalBox.Text = primes.Count.ToString();
+            percentBox.Text = (primes.Count / limitNumericUpDown.Value).ToString("P2");
 
             DateTime end = DateTime.Now;
             TimeSpan time = end - start;
 
-			string message = "Took a total time of ";
+            string message = "Took a total time of ";
 
-			if (time.TotalMinutes >= 1)
+            if (time.TotalMinutes >= 1)
             {
                 message += $"{time.TotalMinutes:N2} minutes.";
             }
-			else if (time.TotalSeconds >= 1)
+            else if (time.TotalSeconds >= 1)
             {
-				message += $"{time.TotalSeconds:N2} seconds.";
-			}
+                message += $"{time.TotalSeconds:N2} seconds.";
+            }
             else
             {
                 message += "less than 1 second.";
             }
 
-			MessageBox.Show(message, @"Time taken", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(message, @"Time taken", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-            DialogResult ans = MessageBox.Show(@"Do you want to save the result?", @"Save result", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            DialogResult ans = MessageBox.Show(@"Do you want to save the result?", @"Save result", MessageBoxButtons.YesNo,
+                                               MessageBoxIcon.Question);
 
             if (ans == DialogResult.Yes)
             {
@@ -62,14 +63,7 @@ namespace Primes
 
                 if (result == DialogResult.OK)
                 {
-                    try
-                    {
-                        File.WriteAllText(saveFileDialog.FileName, String.Join(",", primes));
-                    }
-                    catch (IOException ex)
-                    {
-                        throw ex;
-                    }
+                    File.WriteAllText(saveFileDialog.FileName, string.Join(",", primes));
                 }
             }
         }
@@ -78,11 +72,11 @@ namespace Primes
         {
             foreach (int divisor in primes)
             {
-                if (num % divisor == 0)
+                if ((num % divisor) == 0)
                 {
                     return false;
                 }
-                else if (num < divisor * divisor)
+                if (num < (divisor * divisor))
                 {
                     break;
                 }

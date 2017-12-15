@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 
@@ -7,6 +6,8 @@ namespace Base_Calculator
 {
     public partial class MainForm : Form
     {
+        private static readonly string[] charDigitValues = {"A", "B", "C", "D", "E", "F", "G", "H", "J", "K"};
+
         public MainForm()
         {
             InitializeComponent();
@@ -18,7 +19,7 @@ namespace Base_Calculator
             {
                 return null;
             }
-            else if (num == long.MinValue)
+            if (num == long.MinValue)
             {
                 return null;
             }
@@ -42,7 +43,6 @@ namespace Base_Calculator
                 }
 
                 string digitValue = numDigit.ToString();
-                string[] charDigitValues = {"A", "B", "C", "D", "E", "F", "G", "H", "J", "K"};
 
                 if (numDigit >= 10)
                 {
@@ -58,7 +58,6 @@ namespace Base_Calculator
         private static string TransformFromBase(string numStr, int baseValue)
         {
             long total = 0;
-            List<string> charDigitValues = new List<string> {"A", "B", "C", "D", "E", "F", "G", "H", "J", "K"};
 
             if (numStr.Length == 0)
             {
@@ -71,7 +70,7 @@ namespace Base_Calculator
 
                 if (!int.TryParse(digitStr, out int digitNum))
                 {
-                    digitNum = 10 + charDigitValues.IndexOf(digitStr);
+                    digitNum = 10 + Array.IndexOf(charDigitValues, digitStr);
 
                     if (digitNum == 9)
                     {
@@ -107,7 +106,7 @@ namespace Base_Calculator
             RefreshResult();
         }
 
-        private void oppositeBox_CheckedChanged(object sender, EventArgs e)
+        private void inverseBox_CheckedChanged(object sender, EventArgs e)
         {
             RefreshResult();
         }
@@ -116,7 +115,7 @@ namespace Base_Calculator
         {
             string num = inputTextBox.Text;
             int baseNum = (int)baseNumericUpDown.Value;
-            outputTextBox.Text = oppositeBox.Checked ? TransformFromBase(num, baseNum) : TransformToBase(num, baseNum);
+            outputTextBox.Text = inverseBox.Checked ? TransformFromBase(num, baseNum) : TransformToBase(num, baseNum);
         }
     }
 }

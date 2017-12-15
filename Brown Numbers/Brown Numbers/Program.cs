@@ -5,7 +5,7 @@ namespace Brown_Numbers
 {
     public class Program
     {
-        private static int[] preCalc = new int[] {
+        private static readonly int[] preCalc = {
             8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2,
             2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -16,7 +16,7 @@ namespace Brown_Numbers
         {
             byte[] buf = bi.ToByteArray();
             int len = buf.Length;
-            return len * 8 - preCalc[buf[len - 1]] - 1;
+            return (len * 8) - preCalc[buf[len - 1]] - 1;
         }
 
         public static BigInteger Sqrt(BigInteger bi)
@@ -36,17 +36,18 @@ namespace Brown_Numbers
             return total;
         }
 
-        private static void Main(string[] args)
+        private static void Main()
         {
             for (int n = 1; n <= 100; n++)
             {
                 BigInteger factorial = Factorial(n);
+                BigInteger limit = factorial / Sqrt(factorial);
                 BigInteger m = 1;
                 bool found = false;
 
-                while (m <= factorial / Sqrt(factorial))
+                while (m <= limit)
                 {
-                    if (m * m == factorial + 1)
+                    if ((m * m) == (factorial + 1))
                     {
                         found = true;
                         break;
@@ -54,7 +55,7 @@ namespace Brown_Numbers
 
                     m++;
                 }
-                
+
                 if (found)
                 {
                     Console.WriteLine(m + ", " + n);

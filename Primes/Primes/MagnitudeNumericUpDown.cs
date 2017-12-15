@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 
 namespace Primes
 {
-    class MagnitudeNumericUpDown : NumericUpDown
+    internal class MagnitudeNumericUpDown : NumericUpDown
     {
         public override void UpButton()
         {
-            if (Value * Increment <= Maximum)
+            if ((Value * Increment) <= Maximum)
             {
                 Value = Value * Increment;
             }
@@ -19,7 +14,7 @@ namespace Primes
 
         public override void DownButton()
         {
-            if (Value / Increment >= Minimum)
+            if ((Value / Increment) >= Minimum)
             {
                 Value = Value / Increment;
             }

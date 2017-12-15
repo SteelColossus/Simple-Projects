@@ -11,7 +11,7 @@ namespace Word_Generator
     {
         private string[] wordList;
         private PatternTree patternTree;
-        private bool forceRewrite = false;
+        private readonly bool forceRewrite = false;
 
         public Form1()
         {
@@ -26,9 +26,9 @@ namespace Word_Generator
 
         private static string[] SplitByLength(string toSplit, int length)
         {
-            string[] splitStrings = new string[toSplit.Length - length + 1];
+            string[] splitStrings = new string[(toSplit.Length - length) + 1];
 
-            for (int i = 0; i < toSplit.Length - length + 1; i++)
+            for (int i = 0; i < ((toSplit.Length - length) + 1); i++)
             {
                 splitStrings[i] = toSplit.Substring(i, length).ToLower();
             }
@@ -94,14 +94,7 @@ namespace Word_Generator
             {
                 string patternToAdd;
 
-                if (i == 0)
-                {
-                    patternToAdd = patternTree.GetRandomStartingPattern();
-                }
-                else
-                {
-                    patternToAdd = patternTree.GetRandomFollowingPattern(randomPatterns[i-1]);
-                }
+                patternToAdd = i == 0 ? patternTree.GetRandomStartingPattern() : patternTree.GetRandomFollowingPattern(randomPatterns[i - 1]);
 
                 randomPatterns[i] = patternToAdd;
             }
@@ -136,8 +129,9 @@ namespace Word_Generator
 
                 string dictionaryFile = dictionaryPath.Substring(dictionaryPath.LastIndexOf(@"\", StringComparison.Ordinal));
 
-                string patternsFile = (dictionaryFile.Contains("dictionary")) ? dictionaryFile.Replace("dictionary", "patterns") : "patterns_" +
-                                                                                                                                   dictionaryFile;
+                string patternsFile = dictionaryFile.Contains("dictionary") ?
+                    dictionaryFile.Replace("dictionary", "patterns") :
+                    "patterns_" + dictionaryFile;
 
                 string patternsPath = dictionaryPath.Substring(0, dictionaryPath.LastIndexOf(@"\", StringComparison.Ordinal)) +
                                       patternsFile;
@@ -187,7 +181,7 @@ namespace Word_Generator
 
                         foreach (string line in lines.Skip(firstLinkLine - 1))
                         {
-                            string[] tokens = line.Split(new[] { ":", "->" }, StringSplitOptions.RemoveEmptyEntries);
+                            string[] tokens = line.Split(new[] {":", "->"}, StringSplitOptions.RemoveEmptyEntries);
 
                             patternTree.AddPatternLinks(tokens[0], tokens[1], int.Parse(tokens[2]));
                         }
@@ -236,7 +230,7 @@ namespace Word_Generator
 
                 MessageBox.Show(@"Dictionary was loaded successfully!", @"Loaded successfully", MessageBoxButtons.OK,
                                 MessageBoxIcon.Information);
-            }            
+            }
         }
     }
 }

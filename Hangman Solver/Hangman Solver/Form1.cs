@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -18,7 +19,7 @@ namespace Hangman_Solver
         private List<char> remainingLetters;
 
         private List<char> charOrderList;
-        private bool obscureMode = false;
+        private readonly bool obscureMode = false;
 
         public Form1()
         {
@@ -32,7 +33,9 @@ namespace Hangman_Solver
             foreach (string strInList in wordList)
             {
                 if (strInList.Length != pattern.Length)
+                {
                     continue;
+                }
 
                 int pos = 0;
                 bool validWord = true;
@@ -42,7 +45,9 @@ namespace Hangman_Solver
                     pos++;
                     char letterAtPos = strInList.ElementAt(pos - 1);
 
-                    if ((letterInPattern != '_' && letterInPattern != letterAtPos) || (pattern.Contains(letterAtPos) && letterInPattern == '_') || (!remainingLetters.Contains(letterAtPos) && !pattern.Contains(letterAtPos)))
+                    if (((letterInPattern != '_') && (letterInPattern != letterAtPos)) ||
+                        (pattern.Contains(letterAtPos) && (letterInPattern == '_')) ||
+                        (!remainingLetters.Contains(letterAtPos) && !pattern.Contains(letterAtPos)))
                     {
                         validWord = false;
                         break;
@@ -91,11 +96,15 @@ namespace Hangman_Solver
         {
             Dictionary<char, int> letterCount = GetSortedLetterCount(strList);
 
-            Dictionary<char, int> highestChars = letterCount.Where(v => v.Value == letterCount.First().Value).ToDictionary(p => p.Key, p => p.Value);
+            Dictionary<char, int> highestChars =
+                letterCount.Where(v => v.Value == letterCount.First().Value).ToDictionary(p => p.Key, p => p.Value);
 
-            Func<char, bool> pred = v => highestChars.Keys.Contains(v);
+            bool CharContained(char v)
+            {
+                return highestChars.Keys.Contains(v);
+            }
 
-            char bestGuess = (obscureMode) ? charOrderList.Last(pred) : charOrderList.First(pred);
+            char bestGuess = obscureMode ? charOrderList.Last(CharContained) : charOrderList.First(CharContained);
 
             return bestGuess;
         }
@@ -134,17 +143,19 @@ namespace Hangman_Solver
 
         private bool CheckWordValidity(string word)
         {
-            if (String.IsNullOrWhiteSpace(word))
+            if (string.IsNullOrWhiteSpace(word))
             {
-                MessageBox.Show(@"Please enter a valid word into the textbox.", @"Invalid word", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                MessageBox.Show(@"Please enter a valid word into the textbox.", @"Invalid word", MessageBoxButtons.OK,
+                                MessageBoxIcon.Exclamation);
                 return false;
             }
 
             word = word.ToLower();
 
-            if (!Regex.IsMatch(word, @"^[a-z]+$") || (word.Length < 2 || word.Length > 20))
+            if (!Regex.IsMatch(word, @"^[a-z]{2,20}$"))
             {
-                MessageBox.Show(@"The word must be composed of only letters and must be between 2 and 20 characters long.", @"Invalid word", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                MessageBox.Show(@"The word must be composed of only letters and must be between 2 and 20 characters long.",
+                                @"Invalid word", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return false;
             }
 
@@ -152,21 +163,21 @@ namespace Hangman_Solver
 
             if (wordFound)
             {
-                MessageBox.Show(@"Word was found. Let's begin!", @"Game commence", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(@"Word was found. Let's begin!", @"Game commence", MessageBoxButtons.OK,
+                                MessageBoxIcon.Information);
                 return true;
             }
-            else
-            {
-                MessageBox.Show(@"Word was not found. :(" + Environment.NewLine + @"Please think of a different word to use.", "Invalid word", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                return false;
-            }
+            MessageBox.Show(@"Word was not found. :(" + Environment.NewLine + @"Please think of a different word to use.",
+                            @"Invalid word", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            return false;
         }
 
         private void RunTurn()
         {
             if (possibleWordsBox.Items.Count > 0)
             {
-                MessageBox.Show(@"Computer guesses " + GuessLetter() + @"!", @"Computer guess", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(@"Computer guesses " + GuessLetter() + @"!", @"Computer guess", MessageBoxButtons.OK,
+                                MessageBoxIcon.Information);
                 wrongGuessCounterBox.Text = wrongGuesses.ToString();
             }
 
@@ -179,7 +190,9 @@ namespace Hangman_Solver
         private bool StartGame()
         {
             if (!CheckWordValidity(wordBox.Text))
+            {
                 return false;
+            }
 
             wordBox.Text = wordBox.Text.ToLower();
 
@@ -193,9 +206,12 @@ namespace Hangman_Solver
             guessWord = new string('_', actualWord.Length);
             wrongGuesses = 0;
 
-            if (remainingLetters == null || remainingLetters.Count < 26)
+            if ((remainingLetters == null) || (remainingLetters.Count < 26))
             {
-                remainingLetters = new List<char>(26) { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
+                remainingLetters = new List<char>(26) {
+                    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+                    'w', 'x', 'y', 'z'
+                };
             }
 
             gameRunning = true;
@@ -204,15 +220,19 @@ namespace Hangman_Solver
 
         private void FinishGame()
         {
-            MessageBox.Show(@"Computer solved it with " + wrongGuesses + @" wrong guesses.", @"Word solved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(@"Computer solved it with " + wrongGuesses + @" wrong guesses.", @"Word solved", MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
             gameRunning = false;
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            wordList = System.IO.File.ReadAllLines("dictionary.txt");
+            wordList = File.ReadAllLines("dictionary.txt");
 
-            remainingLetters = new List<char>(26) { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
+            remainingLetters = new List<char>(26) {
+                'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w',
+                'x', 'y', 'z'
+            };
 
             Dictionary<char, int> letterCount = GetSortedLetterCount(wordList);
 
@@ -224,12 +244,14 @@ namespace Hangman_Solver
             if (!gameRunning)
             {
                 if (!StartGame())
+                {
                     return;
+                }
             }
 
-            if (Int32.Parse(numPossibleWordsBox.Text) == 1)
+            if (int.Parse(numPossibleWordsBox.Text) == 1)
             {
-                while (guessWord.IndexOfAny(new[] { '_' }) != -1)
+                while (guessWord.IndexOfAny(new[] {'_'}) != -1)
                 {
                     RunTurn();
                 }
@@ -239,7 +261,7 @@ namespace Hangman_Solver
                 RunTurn();
             }
 
-            if (guessWord.IndexOfAny(new[] { '_' }) == -1)
+            if (guessWord.IndexOfAny(new[] {'_'}) == -1)
             {
                 FinishGame();
             }
@@ -250,10 +272,12 @@ namespace Hangman_Solver
             if (!gameRunning)
             {
                 if (!StartGame())
+                {
                     return;
+                }
             }
 
-            while (guessWord.IndexOfAny(new[] { '_' }) != -1)
+            while (guessWord.IndexOfAny(new[] {'_'}) != -1)
             {
                 RunTurn();
             }

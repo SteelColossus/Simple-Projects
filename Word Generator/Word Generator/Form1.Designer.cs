@@ -37,11 +37,12 @@
             // 
             // randomWordButton
             // 
-            this.randomWordButton.Location = new System.Drawing.Point(12, 121);
+            this.randomWordButton.Location = new System.Drawing.Point(11, 97);
+            this.randomWordButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.randomWordButton.Name = "randomWordButton";
-            this.randomWordButton.Size = new System.Drawing.Size(254, 111);
+            this.randomWordButton.Size = new System.Drawing.Size(226, 89);
             this.randomWordButton.TabIndex = 3;
-            this.randomWordButton.Text = "Random Word!";
+            this.randomWordButton.Text = "Random Words!";
             this.randomWordButton.UseVisualStyleBackColor = true;
             this.randomWordButton.Click += new System.EventHandler(this.randomWordButton_Click);
             // 
@@ -54,9 +55,10 @@
             // 
             // openDictionaryButton
             // 
-            this.openDictionaryButton.Location = new System.Drawing.Point(124, 51);
+            this.openDictionaryButton.Location = new System.Drawing.Point(110, 41);
+            this.openDictionaryButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.openDictionaryButton.Name = "openDictionaryButton";
-            this.openDictionaryButton.Size = new System.Drawing.Size(142, 64);
+            this.openDictionaryButton.Size = new System.Drawing.Size(126, 51);
             this.openDictionaryButton.TabIndex = 2;
             this.openDictionaryButton.Text = "Open dictionary";
             this.openDictionaryButton.UseVisualStyleBackColor = true;
@@ -64,9 +66,11 @@
             // 
             // progressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(13, 13);
+            this.progressBar.Location = new System.Drawing.Point(12, 10);
+            this.progressBar.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.progressBar.MarqueeAnimationSpeed = 10;
             this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(253, 31);
+            this.progressBar.Size = new System.Drawing.Size(225, 25);
             this.progressBar.Step = 1;
             this.progressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
             this.progressBar.TabIndex = 0;
@@ -78,22 +82,23 @@
             this.encodingComboBox.Items.AddRange(new object[] {
             "ANSI",
             "UTF-8"});
-            this.encodingComboBox.Location = new System.Drawing.Point(13, 70);
+            this.encodingComboBox.Location = new System.Drawing.Point(12, 56);
+            this.encodingComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.encodingComboBox.Name = "encodingComboBox";
-            this.encodingComboBox.Size = new System.Drawing.Size(105, 28);
+            this.encodingComboBox.Size = new System.Drawing.Size(94, 24);
             this.encodingComboBox.TabIndex = 1;
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(278, 244);
+            this.ClientSize = new System.Drawing.Size(247, 195);
             this.Controls.Add(this.encodingComboBox);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.openDictionaryButton);
             this.Controls.Add(this.randomWordButton);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.Text = "Pattern Explorer";

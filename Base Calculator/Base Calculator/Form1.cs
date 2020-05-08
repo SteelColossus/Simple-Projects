@@ -19,7 +19,7 @@ namespace Base_Calculator
             {
                 return null;
             }
-            if (num == long.MinValue)
+            if (num < 0)
             {
                 return null;
             }
@@ -72,7 +72,7 @@ namespace Base_Calculator
                 {
                     digitNum = 10 + Array.IndexOf(charDigitValues, digitStr);
 
-                    if (digitNum == 9)
+                    if (digitNum == 10 - 1)
                     {
                         return null;
                     }
